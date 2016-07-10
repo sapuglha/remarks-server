@@ -8,13 +8,19 @@ import (
 	"net/http/httputil"
 )
 
-// Comment has a message and a creation timestamp
+// Comment has a comment and a creation timestamp
 type Comment struct {
 	comment   string
 	timestamp int64
 }
 
-func message(w http.ResponseWriter, r *http.Request) {
+// Annotation has an annotation and a creation timestamp
+type Annotation struct {
+	annotation string
+	timestamp  int64
+}
+
+func comment(w http.ResponseWriter, r *http.Request) {
 	dump, err := httputil.DumpRequest(r, true)
 	if err != nil {
 		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
@@ -27,13 +33,33 @@ func message(w http.ResponseWriter, r *http.Request) {
 	var comment Comment
 	err = decoder.Decode(&comment)
 	if err != nil {
-		io.WriteString(w, "{\"response\":\"invalid\"}")
+		http.Error(w, "{\"response\":\"error\"}", http.StatusBadRequest)
+		return
+	}
+	io.WriteString(w, "{\"response\":\"success\"}")
+}
+
+func annotation(w http.ResponseWriter, r *http.Request) {
+	dump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("%q\n", dump)
+
+	decoder := json.NewDecoder(r.Body)
+	var annotation Annotation
+	err = decoder.Decode(&annotation)
+	if err != nil {
+		http.Error(w, "{\"response\":\"error\"}", http.StatusBadRequest)
 		return
 	}
 	io.WriteString(w, "{\"response\":\"success\"}")
 }
 
 func main() {
-	http.HandleFunc("/comment/", message)
+	http.HandleFunc("/comment/", comment)
+	http.HandleFunc("/annotation/", annotation)
 	http.ListenAndServe(":9090", nil)
 }
